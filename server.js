@@ -26,7 +26,7 @@ const allowedOrigins = [
   'https://bago-front-production.up.railway.app',
 ];
 
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
     // Autoriser Postman / curl (sans origin) ou les origines listées
     if (!origin || allowedOrigins.includes(origin)) {
@@ -38,10 +38,12 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+};
+
+app.use(cors(corsOptions));
 
 // Support pour les préflights OPTIONS
-app.options('*', cors());
+app.options('*', cors(corsOptions));
 
 // JSON body parser
 app.use(express.json());
