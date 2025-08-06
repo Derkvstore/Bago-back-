@@ -4,13 +4,9 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 dotenv.config();
 
-// Import de la connexion PostgreSQL
 const { pool } = require('./db');
-
-// Import des fonctions d'auth
 const { registerUser, loginUser } = require('./auth');
 
-// Import des routes
 const clientsRoutes = require('./clients');
 const productRoutes = require('./products');
 const ventesRoutes = require('./ventes');
@@ -24,7 +20,7 @@ const specialOrdersRoutes = require('./specialOrders');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// CORS dynamique : accepte localhost + Railway frontend
+// CORS : autorise uniquement ton frontend Railway + localhost
 const allowedOrigins = [
   'http://localhost:5173',
   'https://bago-front-production.up.railway.app',
@@ -32,6 +28,7 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
+    // Autoriser Postman / curl (sans origin) ou les origines listées
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -43,29 +40,19 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Support des requêtes préflight OPTIONS
-app.options('*', cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS preflight bloqué'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+// Support pour les préflights OPTIONS
+app.options('*', cors());
 
+// JSON body parser
 app.use(express.json());
 
 /* --- ROUTES --- */
 
-// Authentification
+// Auth
 app.post('/api/login', loginUser);
 app.post('/api/register', registerUser);
 
-// Ressources
+// Routes principales
 app.use('/api/clients', clientsRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/ventes', ventesRoutes);
@@ -76,7 +63,7 @@ app.use('/api/fournisseurs', fournisseursRoutes);
 app.use('/api/factures', facturesRoutes);
 app.use('/api/special-orders', specialOrdersRoutes);
 
-// Route GET pour les bénéfices
+// Route bénéfices
 app.get('/api/benefices', async (req, res) => {
   try {
     let query = `
