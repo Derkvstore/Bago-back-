@@ -27,8 +27,9 @@ const PORT = process.env.PORT || 3001;
 // CORS dynamique : accepte local + Railway (ajoute ton vrai domaine frontend)
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://ton-frontend-production.up.railway.app' // ← remplace ça quand ton frontend est déployé
+  'https://bago-front-production.up.railway.app' // Mettez ici l'URL de votre frontend déployé
 ];
+
 
 app.use(cors({
   origin: function (origin, callback) {
