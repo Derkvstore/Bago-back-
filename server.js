@@ -24,23 +24,37 @@ const specialOrdersRoutes = require('./specialOrders');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// CORS dynamique : accepte local + Railway (ajoute ton vrai domaine frontend)
+// CORS dynamique : accepte localhost + Railway frontend
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://bago-front-production.up.railway.app' // Mettez ici l'URL de votre frontend déployé
+  'https://bago-front-production.up.railway.app',
 ];
-
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Autoriser les outils comme Postman ou accès direct sans origin
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Accès bloqué par la politique CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// Support des requêtes préflight OPTIONS
+app.options('*', cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS preflight bloqué'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 app.use(express.json());
