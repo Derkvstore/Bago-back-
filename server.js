@@ -1,4 +1,3 @@
-// backend/server.js
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -20,7 +19,7 @@ const specialOrdersRoutes = require('./specialOrders');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// CORS : autorise uniquement ton frontend Railway + localhost
+// ✅ CORS : autoriser localhost + frontend Railway
 const allowedOrigins = [
   'http://localhost:5173',
   'https://bago-front-production.up.railway.app',
@@ -28,11 +27,11 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Autoriser Postman / curl (sans origin) ou les origines listées
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Accès bloqué par la politique CORS'));
+      console.log('CORS bloqué pour cette origine :', origin);
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
@@ -40,22 +39,11 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-// ⚠️ Appliquer CORS
 app.use(cors(corsOptions));
-
-// ✅ Fix final : renvoyer l'origin explicitement si credentials: true
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  next();
-});
-
-// OPTIONS pour preflight
+// ✅ Obligatoire pour autoriser les requêtes préflight (OPTIONS)
 app.options('*', cors(corsOptions));
 
-// JSON body parser
+// Parser JSON
 app.use(express.json());
 
 /* --- ROUTES --- */
