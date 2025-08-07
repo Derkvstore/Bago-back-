@@ -75,7 +75,7 @@ router.get('/dashboard-stats', async (req, res) => {
 
     // Total Mobiles Rendu (statut 'rendu' dans vente_items)
     const totalRenduResult = await client.query(
-      `SELECT COALESCE(SUM(quantite_vendue), 0) AS total_rendu FROM vente_items WHERE statut_vente = 'rendu';`
+      `SELECT COALESCE(SUM(vi.quantite_vendue), 0) AS total_rendu FROM vente_items WHERE statut_vente = 'rendu';`
     );
     const totalRendu = parseInt(totalRenduResult.rows[0].total_rendu, 10);
 
