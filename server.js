@@ -42,9 +42,8 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Support pour les préflights OPTIONS
-// Correction : Remplacement de '*' par '/*' pour éviter l'erreur "Missing parameter name"
-app.options('/*', cors(corsOptions));
+// ✅ Correction ici : remplacer '/*' par '*' pour éviter l’erreur path-to-regexp
+app.options('*', cors(corsOptions));
 
 // JSON body parser
 app.use(express.json());
