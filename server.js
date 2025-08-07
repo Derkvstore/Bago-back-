@@ -25,23 +25,22 @@ const allowedOrigins = [
   'https://bago-front-production.up.railway.app',
 ];
 
-const corsOptions = {
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log('❌ Origine non autorisée :', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+// Configuration CORS simplifiée
+app.use(cors({
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-};
+}));
 
-// ✅ Middleware CORS — à placer tout en haut
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Gestion des requêtes préflight
+// Gère les requêtes pré-vérification OPTIONS. C'est nécessaire
+// car votre frontend envoie ce type de requête avant chaque POST, PUT, DELETE.
+app.options('*', cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
 // ✅ Middleware pour parser les corps JSON
 app.use(express.json());
