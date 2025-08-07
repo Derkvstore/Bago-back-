@@ -40,9 +40,19 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
+// ⚠️ Appliquer CORS
 app.use(cors(corsOptions));
 
-// ✅ Correction ici : remplacer '/*' par '*' pour éviter l’erreur path-to-regexp
+// ✅ Fix final : renvoyer l'origin explicitement si credentials: true
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  next();
+});
+
+// OPTIONS pour preflight
 app.options('*', cors(corsOptions));
 
 // JSON body parser
