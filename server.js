@@ -19,18 +19,18 @@ const specialOrdersRoutes = require('./specialOrders');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ✅ CORS : autoriser localhost + frontend Railway
+// ✅ CORS : autorise uniquement ton frontend Railway + localhost
 const allowedOrigins = [
   'http://localhost:5173',
   'https://bago-front-production.up.railway.app',
 ];
 
 const corsOptions = {
-  origin: function (origin, callback) {
+  origin(origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.log('CORS bloqué pour cette origine :', origin);
+      console.log('❌ Origine non autorisée :', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -39,11 +39,11 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
+// ✅ Middleware CORS — à placer tout en haut
 app.use(cors(corsOptions));
-// ✅ Obligatoire pour autoriser les requêtes préflight (OPTIONS)
-app.options('*', cors(corsOptions));
+app.options('*', cors(corsOptions)); // Gestion des requêtes préflight
 
-// Parser JSON
+// ✅ Middleware pour parser les corps JSON
 app.use(express.json());
 
 /* --- ROUTES --- */
