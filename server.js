@@ -19,31 +19,27 @@ const specialOrdersRoutes = require('./specialOrders');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ✅ CORS : autorise Railway Frontend + localhost
+// ✅ CORS autorisé pour Railway Front + localhost
 const allowedOrigins = [
-  'http://localhost:5173',
-  'https://bago-front-production.up.railway.app'
+  'https://bago-front-production.up.railway.app',
+  'http://localhost:5173'
 ];
 
-// ✅ Middleware CORS
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
+// ✅ Middleware CORS propre
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-
-  next();
-});
-
-// ✅ Middleware pour parser les corps JSON
+// ✅ Parser JSON
 app.use(express.json());
 
 /* --- ROUTES --- */
