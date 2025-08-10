@@ -19,28 +19,29 @@ const specialOrdersRoutes = require('./specialOrders');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ✅ CORS : autorise uniquement ton frontend Railway + localhost
+// ✅ CORS : autorise Railway Frontend + localhost
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://bago-front-production.up.railway.app',
+  'https://bago-front-production.up.railway.app'
 ];
 
-// Configuration CORS simplifiée
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+// ✅ Middleware CORS
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
 
-// Gère les requêtes pré-vérification OPTIONS. C'est nécessaire
-// car votre frontend envoie ce type de requête avant chaque POST, PUT, DELETE.
-app.options('*', cors({
-  origin: allowedOrigins,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
 
 // ✅ Middleware pour parser les corps JSON
 app.use(express.json());
