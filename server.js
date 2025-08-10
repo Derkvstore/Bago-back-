@@ -19,9 +19,10 @@ const specialOrdersRoutes = require('./specialOrders');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ✅ CORS autorisé pour Railway Front + localhost
+// ✅ CORS autorisé pour Railway Front + localhost et ton site Vercel
 const allowedOrigins = [
   'https://bago-front-production.up.railway.app',
+  'https://yattassaye-app.vercel.app', // 💡 C'est la ligne ajoutée !
   'http://localhost:5173'
 ];
 
