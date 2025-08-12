@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('./db'); // Assurez-vous que le chemin vers db.js est correct
-const pdf = require('html-pdf'); // Importation de la bibliothèque html-pdf
+const puppeteer = require('puppeteer'); // Importation de la bibliothèque puppeteer
 
 // Fonction utilitaire pour formater les montants
 const formatAmount = (amount) => {
@@ -717,12 +717,12 @@ router.post('/mark-as-rendu', async (req, res) => {
     await clientDb.query(
       'UPDATE ventes SET montant_total = $1, statut_paiement = $2 WHERE id = $3',
       [newMontantTotal, newStatutPaiement, vente_id]
-    ); 
+    );
 
     // Calculer le nouveau montant_actuel_du pour la facture
     const newMontantActuelDu = newMontantTotal - currentMontantPaye;
 
-    // 4. Mettre à jour le statut de la facture associée
+    // Mettre à jour le statut de la facture associée
     await clientDb.query(
       'UPDATE factures SET statut_facture = $1, montant_original_facture = $2, montant_actuel_du = $3, montant_paye_facture = $4 WHERE vente_id = $5',
       [newStatutPaiement, newMontantTotal, newMontantActuelDu, currentMontantPaye, vente_id]
@@ -950,8 +950,8 @@ router.get('/:id/pdf', async (req, res) => {
   <div class="header">
     <div class="header-logo-container">
       <!-- 🔽 Place ton logo ici -->
-      <img src="logo.png" alt="Logo" />
-      <h1 color = "red" > YATTASSAYE ELECTRONIQUE </h1>
+      <img src="LOGO_URL_HERE" alt="Logo" />
+      <h1 color = "red" >DAFF TELECOM </h1>
       <p style="font-size: 11px; color: #666; margin-top: 6px;">Halle de Bamako<br/>Tél: 79 79 83 77</p>
     </div>
     <div class="header-info">
@@ -996,25 +996,25 @@ router.get('/:id/pdf', async (req, res) => {
 </div>
 `;
 
-    const options = {
+    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+    
+    // Utilisez page.setContent pour injecter votre HTML et attendre que le réseau soit inactif
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    
+    const pdfBuffer = await page.pdf({
       format: 'A4',
-      orientation: 'portrait',
-      border: '1cm',
-      quality: '75',
-    };
-
-    pdf.create(htmlContent, options).toBuffer((err, buffer) => {
-      if (err) {
-        console.error('Erreur lors de la création du PDF:', err);
-        return res.status(500).json({ error: 'Erreur lors de la génération du PDF.' });
-      }
-      res.writeHead(200, {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename=facture_${venteId}.pdf`,
-        'Content-Length': buffer.length
-      });
-      res.end(buffer);
+      printBackground: true, // Pour que les couleurs de fond soient incluses
     });
+    
+    await browser.close();
+    
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename=facture_${venteId}.pdf`,
+      'Content-Length': pdfBuffer.length
+    });
+    res.send(pdfBuffer);
 
   } catch (error) {
     console.error('Erreur lors de la génération du PDF de la facture:', error);
