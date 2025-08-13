@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('./db'); // Assurez-vous que le chemin vers db.js est correct
-const puppeteer = require('puppeteer'); // Importation de la bibliothèque puppeteer
+// On utilise les versions compatibles Vercel de puppeteer et chromium
+const chromium = require('@sparticuz/chromium');
+const puppeteer = require('puppeteer-core');
 
 // Fonction utilitaire pour formater les montants
 const formatAmount = (amount) => {
@@ -764,11 +766,11 @@ router.post('/mark-as-rendu', async (req, res) => {
 });
 
 
-
 // Route pour générer un PDF de la facture pour une vente donnée
 router.get('/:id/pdf', async (req, res) => {
   const venteId = req.params.id;
   let clientDb;
+  let browser;
 
   try {
     clientDb = await pool.connect();
@@ -949,7 +951,6 @@ router.get('/:id/pdf', async (req, res) => {
 <div class="invoice-container">
   <div class="header">
     <div class="header-logo-container">
-      <!-- 🔽 Place ton logo ici -->
       <img src="LOGO_URL_HERE" alt="Logo" />
       <h1 color = "red" > NIANGADOU ELECTRO </h1>
       <p style="font-size: 11px; color: #666; margin-top: 6px;">Halle de Bamako<br/>Tél: 82 82 02 02</p>
@@ -996,7 +997,14 @@ router.get('/:id/pdf', async (req, res) => {
 </div>
 `;
 
-    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    // NOUVELLE LOGIQUE POUR LANCER PUPPETEER SUR VERCEL
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+    
     const page = await browser.newPage();
     
     // Utilisez page.setContent pour injecter votre HTML et attendre que le réseau soit inactif
@@ -1009,9 +1017,11 @@ router.get('/:id/pdf', async (req, res) => {
     
     await browser.close();
     
+    // On met le nom du client dans le nom du fichier
+    const clientNameForFilename = sale.client_nom.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename=facture_${venteId}.pdf`,
+      'Content-Disposition': `attachment; filename=facture_${venteId}_${clientNameForFilename}.pdf`,
       'Content-Length': pdfBuffer.length
     });
     res.send(pdfBuffer);
@@ -1021,6 +1031,7 @@ router.get('/:id/pdf', async (req, res) => {
     res.status(500).json({ error: 'Erreur serveur lors de la génération du PDF.' });
   } finally {
     if (clientDb) clientDb.release();
+    if (browser) await browser.close();
   }
 });
 
