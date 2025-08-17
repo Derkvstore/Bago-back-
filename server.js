@@ -17,14 +17,15 @@ const facturesRoutes = require('./factures');
 const specialOrdersRoutes = require('./specialOrders');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.env || 3001;
 
 // ✅ CORS autorisé pour Railway Front + localhost et ton site Vercel
 const allowedOrigins = [
-  'https://bago-front-production.up.railway.app',
-  'https://yattassaye-app.vercel.app', // 💡 C'est la ligne ajoutée !
-  'http://localhost:5173'
+   'https://bago-back-production.up.railway.app',
+   'https://yattassaye-app.vercel.app',
+   'http://localhost:5173'
 ];
+
 
 // ✅ Middleware CORS propre
 app.use(cors({
@@ -60,7 +61,7 @@ app.use('/api/fournisseurs', fournisseursRoutes);
 app.use('/api/factures', facturesRoutes);
 app.use('/api/special-orders', specialOrdersRoutes);
 
-// Route pour les statistiques du tableau de bord (nouvelle)
+// Route pour les statistiques du tableau de bord (mise à jour)
 app.get('/api/reports/dashboard-stats', async (req, res) => {
   try {
     const [
@@ -70,11 +71,13 @@ app.get('/api/reports/dashboard-stats', async (req, res) => {
       totalReturnedResult,
       totalSentToSupplierResult
     ] = await Promise.all([
-      pool.query('SELECT COUNT(*) FROM cartons'),
-      pool.query('SELECT COUNT(*) FROM produits'),
+      // Utilise la table 'products' avec la condition de 'type'
+      pool.query('SELECT COUNT(*) FROM products WHERE type = \'CARTON\''),
+      pool.query('SELECT COUNT(*) FROM products WHERE type = \'ARRIVAGE\''),
       pool.query('SELECT COUNT(*) FROM ventes'),
-      pool.query('SELECT COUNT(*) FROM retours'),
-      pool.query('SELECT COUNT(*) FROM remplacements')
+      // Utilise les tables 'returns' et 'remplacer'
+      pool.query('SELECT COUNT(*) FROM returns'),
+      pool.query('SELECT COUNT(*) FROM remplacer')
     ]);
 
     const dashboardStats = {
@@ -93,55 +96,90 @@ app.get('/api/reports/dashboard-stats', async (req, res) => {
 });
 
 
-// Route bénéfices (corrigée)
+// Route bénéfices (CALCULÉ UNIQUEMENT SI LA VENTE EST ENTIÈREMENT PAYÉE)
 app.get('/api/benefices', async (req, res) => {
   try {
+    // La CTE (Common Table Expression) calcule le prix de vente total original pour chaque vente
+    // afin de le comparer avec le prix final négocié.
     let query = `
-      SELECT
-          vi.id AS vente_item_id,
-          vi.marque,
-          vi.modele,
-          vi.stockage,
-          vi.type,
-          vi.type_carton,
-          vi.imei,
-          vi.prix_unitaire_achat,
-          vi.prix_unitaire_vente,
-          vi.quantite_vendue,
-          (vi.prix_unitaire_vente - vi.prix_unitaire_achat) AS benefice_unitaire_produit,
-          (vi.quantite_vendue * (vi.prix_unitaire_vente - vi.prix_unitaire_achat)) AS benefice_total_par_ligne,
-          v.date_vente
-      FROM
-          vente_items vi
-      JOIN
-          ventes v ON vi.vente_id = v.id
-      WHERE
-          vi.statut_vente = 'actif'
-          AND v.statut_paiement = 'payee_integralement'
+      WITH VenteItemsOriginal AS (
+          SELECT
+              vi.*,
+              v.date_vente AS date_vente_reelle,
+              v.montant_total AS montant_total_negocie,
+              SUM(vi.prix_unitaire_vente * vi.quantite_vendue) OVER (PARTITION BY v.id) as montant_total_original,
+              v.is_facture_speciale
+          FROM
+              vente_items vi
+          JOIN
+              ventes v ON vi.vente_id = v.id
+          WHERE
+              vi.statut_vente = 'actif' AND v.statut_paiement = 'payee_integralement'
     `;
 
     const queryParams = [];
     let paramIndex = 1;
-
     const { date } = req.query;
 
     if (date) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         return res.status(400).json({ error: 'Format de date invalide. Utilisez YYYY-MM-DD.' });
       }
-
+      // Ajoute le filtre de date à l'intérieur de la CTE
       query += ` AND DATE(v.date_vente) = $${paramIndex}`;
       queryParams.push(date);
       paramIndex++;
     }
 
-    query += ` ORDER BY v.date_vente DESC;`;
+    query += `
+      )
+      SELECT
+          vin.id AS vente_item_id,
+          vin.marque,
+          vin.modele,
+          vin.stockage,
+          vin.type,
+          vin.type_carton,
+          vin.imei,
+          vin.prix_unitaire_achat,
+          -- Le prix de vente ajusté dépend si une négociation a eu lieu.
+          CASE
+              WHEN vin.montant_total_original > 0 AND vin.montant_total_negocie <> vin.montant_total_original
+              THEN (vin.prix_unitaire_vente * vin.montant_total_negocie / vin.montant_total_original)
+              ELSE vin.prix_unitaire_vente
+          END AS prix_unitaire_vente,
+          vin.quantite_vendue,
+          -- Le bénéfice est calculé avec le prix de vente ajusté
+          (
+              CASE
+                  WHEN vin.montant_total_original > 0 AND vin.montant_total_negocie <> vin.montant_total_original
+                  THEN (vin.prix_unitaire_vente * vin.montant_total_negocie / vin.montant_total_original)
+                  ELSE vin.prix_unitaire_vente
+              END
+          ) - vin.prix_unitaire_achat AS benefice_unitaire_produit,
+          -- Le bénéfice total pour la ligne est le bénéfice unitaire fois la quantité
+          vin.quantite_vendue * (
+              (
+                  CASE
+                      WHEN vin.montant_total_original > 0 AND vin.montant_total_negocie <> vin.montant_total_original
+                  THEN (vin.prix_unitaire_vente * vin.montant_total_negocie / vin.montant_total_original)
+                  ELSE vin.prix_unitaire_vente
+              END
+          ) - vin.prix_unitaire_achat
+      ) AS benefice_total_par_ligne,
+          vin.date_vente_reelle AS date_vente
+      FROM
+          VenteItemsOriginal vin
+      ORDER BY
+          vin.date_vente_reelle DESC;
+    `;
 
     const itemsResult = await pool.query(query, queryParams);
     const soldItems = itemsResult.rows;
 
     let totalBeneficeGlobal = 0;
     soldItems.forEach(item => {
+      // Le bénéfice total est déjà calculé par ligne dans la requête SQL
       totalBeneficeGlobal += parseFloat(item.benefice_total_par_ligne);
     });
 
@@ -155,6 +193,7 @@ app.get('/api/benefices', async (req, res) => {
     res.status(500).json({ error: 'Erreur interne du serveur lors du calcul des bénéfices.' });
   }
 });
+
 
 /* --- DÉMARRAGE DU SERVEUR --- */
 app.listen(PORT, () => {
