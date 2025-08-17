@@ -954,7 +954,7 @@ router.get('/:id/pdf', async (req, res) => {
 <div class="invoice-container">
   <div class="header">
     <div class="header-logo-container">
-      <h1 color = "red" >YATTASSAYE ELECTRONIQUE </h1>
+      <h1 color = "red" >YATT ELECTRO SERVICES </h1>
       <p style="font-size: 11px; color: #666; margin-top: 6px;">Halle de Bamako<br/>Tél: 71 71 78 01</p>
     </div>
     <div class="header-info">
@@ -1133,7 +1133,7 @@ router.get('/consolidated-invoice/:clientName/pdf', async (req, res) => {
             <div class="invoice-container">
                 <div class="header">
                     <div class="header-logo-container">
-                        <h1>YATTASSAYE ELECTRONIQUE</h1>
+                        <h1>YATT ELECTRO SERVICES</h1>
                         <p style="font-size: 11px; color: #666; margin-top: 6px;">Halle de Bamako<br/>Tél: 79 68 68 88 <br/>72 17 77 42 </p>
                     </div>
                     <div class="header-info">
