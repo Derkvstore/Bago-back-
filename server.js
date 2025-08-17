@@ -22,7 +22,7 @@ const PORT = process.env.env || 3001;
 // ✅ CORS autorisé pour Railway Front + localhost et ton site Vercel
 const allowedOrigins = [
    'https://bago-back-production.up.railway.app',
-   'https://yattassaye-app.vercel.app/',
+   'https://yattassaye-app.vercel.app',
    'http://localhost:5173'
 ];
 
