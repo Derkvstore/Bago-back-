@@ -954,7 +954,7 @@ router.get('/:id/pdf', async (req, res) => {
 <div class="invoice-container">
   <div class="header">
     <div class="header-logo-container">
-      <h1 color = "red" >YATT ELECTRO SERVICES </h1>
+      <h1 color = "red" >YATT ELECTRO SERVICES</h1>
       <p style="font-size: 11px; color: #666; margin-top: 6px;">Halle de Bamako<br/>Tél: 71 71 78 01</p>
     </div>
     <div class="header-info">
